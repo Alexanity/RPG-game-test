@@ -2,37 +2,47 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+//[RequireComponent(typeof(BoxCollider2D))] //automatically adds a box collider to the player
 public class Player : MonoBehaviour
 {
-    Rigidbody2D body;
+    private BoxCollider2D boxCollider;
+    private Vector3 moveDelta; // difference between the frame that's displaying right now and the next one
+    private RaycastHit2D hit;
 
-    float horizontal;
-    float vertical;
-    float moveLimiter = 0.7f;
-
-    public float runSpeed = 20.0f;
-
-    void Start()
+    private void Start()
     {
-        body = GetComponent<Rigidbody2D>();
+        boxCollider = GetComponent<BoxCollider2D>();
     }
-
-    void Update()
+    private void FixedUpdate()
     {
-        // Gives a value between -1 and 1
-        horizontal = Input.GetAxisRaw("Horizontal"); // -1 is left
-        vertical = Input.GetAxisRaw("Vertical"); // -1 is down
-    }
+        float x = Input.GetAxisRaw("Horizontal");
+        float y = Input.GetAxisRaw("Vertical");
 
-    void FixedUpdate()
-    {
-        if (horizontal != 0 && vertical != 0) // Check for diagonal movement
+        // Reset MoveDelta
+        moveDelta = new Vector3(x,y,0);
+
+        // Swap sprite direction - right and left
+        if(moveDelta.x > 0)
         {
-            // limit movement speed diagonally, so you move at 70% speed
-            horizontal *= moveLimiter;
-            vertical *= moveLimiter;
+            transform.localScale = Vector3.one;
+        }
+        else if (moveDelta.x < 0)
+        {
+            transform.localScale = new Vector3(-1,1,1);
         }
 
-        body.velocity = new Vector2(horizontal * runSpeed, vertical * runSpeed);
+        //Making sure the player can move in this direction by casting a box there first, if the box returns null the player is free to move
+        hit = Physics2D.BoxCast(transform.position, boxCollider.size, 0, new Vector2(0, moveDelta.y), Mathf.Abs(moveDelta.y * Time.deltaTime), LayerMask.GetMask("Actor", "Blocking"));
+        if(hit.collider == null)
+        {   //Moving         
+            transform.Translate(0, moveDelta.y * Time.deltaTime, 0);
+        }
+
+        hit = Physics2D.BoxCast(transform.position, boxCollider.size, 0, new Vector2(moveDelta.x, 0), Mathf.Abs(moveDelta.x * Time.deltaTime), LayerMask.GetMask("Actor", "Blocking"));
+        if (hit.collider == null)
+        {   //Moving         
+            transform.Translate(moveDelta.x * Time.deltaTime, 0, 0);
+        }
+
     }
 }
